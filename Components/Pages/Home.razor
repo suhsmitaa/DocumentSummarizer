@@ -1,0 +1,155 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using DocumentSummarizer.Services
+@inject DocumentService DocumentService
+@inject AiService AiService
+
+<PageTitle>Document Summarizer</PageTitle>
+
+<div class="container mt-4">
+    <h1 class="mb-4">📄 AI Document Summarizer</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>1. Upload PDF or Paste Text</h5>
+            
+            <InputFile OnChange="HandleFileSelected" accept=".pdf" class="form-control mb-3" />
+            
+           <textarea class="form-control" rows="6" 
+          @bind="pastedText" 
+          placeholder="Or paste text here..."></textarea>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert-info mt-3">@statusMessage</div>
+}
+
+<button class="btn btn-primary mt-3" @onclick="ProcessDocument" disabled="@isProcessing">
+    @(isProcessing ? "Processing..." : "Extract & Summarize")
+</button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(extractedText))
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">Summary</div>
+            <div class="card-body">
+                <pre style="white-space: pre-wrap;">@summary</pre>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">Ask a Question</div>
+            <div class="card-body">
+                <input class="form-control mb-2" @bind="question" 
+                       placeholder="e.g. What is the main conclusion?" />
+                <button class="btn btn-success" @onclick="AskQuestion" disabled="@isAsking">
+                    @(isAsking ? "Thinking..." : "Ask")
+                </button>
+
+                @if (!string.IsNullOrEmpty(answer))
+                {
+                    <div class="alert alert-info mt-3">
+                        <strong>Answer:</strong><br />
+                        @answer
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+@code {
+    private string? pastedText;
+    private string? extractedText;
+    private string? summary;
+    private string? question;
+    private string? answer;
+    private bool isProcessing;
+    private bool isAsking;
+    private IBrowserFile? selectedFile;
+    private string? statusMessage;
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        statusMessage = null;
+    }
+
+    private async Task ProcessDocument()
+    {
+        isProcessing = true;
+        summary = null;
+        answer = null;
+        extractedText = null;
+        statusMessage = "Reading document...";
+
+        try
+        {
+            if (selectedFile != null)
+            {
+                using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                extractedText = await DocumentService.ExtractTextFromPdfAsync(stream);
+            }
+            else if (!string.IsNullOrWhiteSpace(pastedText))
+            {
+                extractedText = DocumentService.ExtractTextFromPlain(pastedText);
+            }
+            else
+            {
+                statusMessage = "Please upload a PDF or paste some text.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(extractedText))
+            {
+                statusMessage = "No text found in the document.";
+                return;
+            }
+
+            if (extractedText.StartsWith("ERROR_EXTRACTING_PDF:"))
+            {
+                statusMessage = extractedText;
+                return;
+            }
+
+            // Limit length
+            if (extractedText.Length > 8000)
+                extractedText = extractedText.Substring(0, 8000) + "\n\n[Text truncated...]";
+
+            statusMessage = "Generating summary with AI... (this can take 15-40 seconds)";
+            StateHasChanged();
+
+            summary = await AiService.SummarizeAsync(extractedText);
+            statusMessage = null;
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task AskQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(question) || string.IsNullOrEmpty(extractedText))
+            return;
+
+        isAsking = true;
+        try
+        {
+            answer = await AiService.AskQuestionAsync(extractedText, question);
+        }
+        catch (Exception ex)
+        {
+            answer = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isAsking = false;
+        }
+    }
+}
