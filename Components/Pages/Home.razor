@@ -15,18 +15,18 @@
             
             <InputFile OnChange="HandleFileSelected" accept=".pdf" class="form-control mb-3" />
             
-           <textarea class="form-control" rows="6" 
-          @bind="pastedText" 
-          placeholder="Or paste text here..."></textarea>
+            <textarea class="form-control" rows="6" 
+                      @bind="pastedText" 
+                      placeholder="Or paste text here..."></textarea>
 
-@if (!string.IsNullOrEmpty(statusMessage))
-{
-    <div class="alert alert-info mt-3">@statusMessage</div>
-}
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="alert alert-info mt-3">@statusMessage</div>
+            }
 
-<button class="btn btn-primary mt-3" @onclick="ProcessDocument" disabled="@isProcessing">
-    @(isProcessing ? "Processing..." : "Extract & Summarize")
-</button>
+            <button class="btn btn-primary mt-3" @onclick="ProcessDocument" disabled="@isProcessing">
+                @(isProcessing ? "Processing..." : "Extract & Summarize")
+            </button>
         </div>
     </div>
 
@@ -58,7 +58,12 @@
             </div>
         </div>
     }
+
+    <footer class="text-center text-muted mt-5 mb-4">
+        <small>&copy; 2026 Sushmita Chaurasia</small>
+    </footer>
 </div>
+
 @code {
     private string? pastedText;
     private string? extractedText;
