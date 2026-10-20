@@ -17,7 +17,12 @@ public class AiService
         {
             var messages = new List<ChatMessage>
             {
-                new(ChatRole.System, "You are a helpful assistant that creates clear, concise summaries of documents. Use bullet points when useful. Keep the summary short."),
+                new(ChatRole.System, 
+                    "You are a helpful multilingual assistant. " +
+                    "Create a clear and concise summary of the given document. " +
+                    "If the document is in Nepali, write the summary in Nepali. " +
+                    "If the document is in English, write the summary in English. " +
+                    "Use bullet points when useful. Keep the summary short and accurate."),
                 new(ChatRole.User, $"Please summarize the following document:\n\n{documentText}")
             };
 
@@ -37,8 +42,11 @@ public class AiService
             var messages = new List<ChatMessage>
             {
                 new(ChatRole.System, 
-                    "You are a helpful assistant. Answer the user's question ONLY using the provided document content. " +
-                    "If the answer is not in the document, say 'I could not find that information in the document.'"),
+                    "You are a helpful multilingual assistant. " +
+                    "Answer the user's question ONLY using the provided document content. " +
+                    "If the document is in Nepali, answer in Nepali. " +
+                    "If the document is in English, answer in English. " +
+                    "If the answer is not in the document, say so clearly."),
                 new(ChatRole.User, 
                     $"Document content:\n{documentText}\n\nQuestion: {question}")
             };
